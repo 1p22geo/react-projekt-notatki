@@ -1,26 +1,28 @@
 import { useState, useEffect } from "react";
 import "./App.css";
 import Header from "./components/Header";
-import Sidebar from "./components/Sidebar";
+import Sidebar, { type SidebarView } from "./components/Sidebar";
 import NoteEditor from "./components/NoteEditor";
 import BottomPanel from "./components/BottomPanel";
-import type { Note } from "./models/note";
+import MainMap from "./components/MainMap";
+import type { Note, NoteType } from "./models/note";
 
 const INITIAL_NOTES: Note[] = [
   {
     id: "1",
-    title: "Project Obsidian",
-    content:
-      '# Welcome to Nothing Notes\n\nThis is a **Markdown-first** editor. You can use:\n\n- **Bold** and *Italic*\n- Lists and [Links](https://google.com)\n- Internal links to [Tutorial](#)\n- Code blocks with syntax highlighting:\n\n```javascript\nfunction greet() {\n  console.log("Hello from javascript!");\n}\n```\n\nTry clicking this link to another note: [Tutorial](#)',
+    title: "Project Atlas",
+    content: "# Welcome to your Geographic Knowledge Base\n\nYou can now turn any document into a **Place**. \n\n1. Go to **Settings** in the bottom panel.\n2. Switch type to **Geographic Place**.\n3. Mark the location on the map.\n\nCheck out the [Map of Warsaw](#) for an example.",
     createdAt: new Date().toISOString().split("T")[0],
+    type: "note"
   },
   {
     id: "2",
-    title: "Tutorial",
-    content:
-      "# Tutorial\n\nTo link to another note, just use `[Note Title](#)`.\n\nExample: Go back to [Project Obsidian](#).",
+    title: "Map of Warsaw",
+    content: "# Warsaw Center\n\nThis is the capital of Poland. It has a rich history and beautiful architecture.",
     createdAt: new Date().toISOString().split("T")[0],
-  },
+    type: "place",
+    location: { lat: 52.2297, lng: 21.0122 }
+  }
 ];
 
 function App() {
@@ -29,9 +31,8 @@ function App() {
     return saved ? JSON.parse(saved) : INITIAL_NOTES;
   });
 
-  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(
-    notes[0]?.id || null,
-  );
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(notes[0]?.id || null);
+  const [activeView, setActiveView] = useState<SidebarView>("list");
 
   useEffect(() => {
     localStorage.setItem("bodzio-notes", JSON.stringify(notes));
@@ -45,9 +46,11 @@ function App() {
       title: "",
       content: "",
       createdAt: new Date().toISOString().split("T")[0],
+      type: "note"
     };
     setNotes([newNote, ...notes]);
     setSelectedNoteId(newNote.id);
+    setActiveView("list");
   };
 
   const handleDeleteNote = (id: string) => {
@@ -64,14 +67,15 @@ function App() {
     setNotes(notes.map((n) => (n.id === id ? { ...n, ...updates } : n)));
   };
 
+  const handleUpdateNoteType = (id: string, type: NoteType) => {
+    setNotes(notes.map((n) => (n.id === id ? { ...n, type } : n)));
+  };
+
   const handleNoteNavigate = (title: string) => {
-    const targetNote = notes.find(
-      (n) => n.title.toLowerCase() === title.toLowerCase(),
-    );
+    const targetNote = notes.find(n => n.title.toLowerCase() === title.toLowerCase());
     if (targetNote) {
       setSelectedNoteId(targetNote.id);
-    } else {
-      console.log(`Note with title "${title}" not found.`);
+      setActiveView("list");
     }
   };
 
@@ -81,51 +85,44 @@ function App() {
       <div className="flex flex-1 overflow-hidden relative">
         <Sidebar
           notes={notes}
-          onNoteSelect={(note) => setSelectedNoteId(note.id)}
+          onNoteSelect={(note) => {
+            setSelectedNoteId(note.id);
+            setActiveView("list");
+          }}
           selectedNoteId={selectedNoteId || undefined}
           onAddNote={handleAddNote}
           onDeleteNote={handleDeleteNote}
+          activeView={activeView}
+          onViewChange={setActiveView}
         />
-        <main className="flex-1 overflow-y-auto pb-12">
-          {selectedNote ? (
-            <>
+        <main className="flex-1 overflow-y-auto relative">
+          {activeView === "map" ? (
+            <MainMap notes={notes} onNoteNavigate={handleNoteNavigate} />
+          ) : selectedNote ? (
+            <div className="pb-12">
               <NoteEditor
                 note={selectedNote}
                 onUpdate={handleUpdateNote}
                 onDelete={handleDeleteNote}
                 onNoteNavigate={handleNoteNavigate}
               />
-              <BottomPanel
-                currentNote={selectedNote}
-                allNotes={notes}
-                onNoteNavigate={handleNoteNavigate}
+              <BottomPanel 
+                currentNote={selectedNote} 
+                allNotes={notes} 
+                onNoteNavigate={handleNoteNavigate} 
+                onUpdateType={handleUpdateNoteType}
               />
-            </>
+            </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-gray-300 space-y-6">
               <div className="p-10 rounded-[2.5rem] bg-gray-50 mb-4 animate-in zoom-in duration-700">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-20 w-20"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-20 w-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-black text-gray-900 tracking-tight">
-                  Select a document
-                </p>
-                <p className="text-gray-400 mt-2">
-                  or create a new one to get started
-                </p>
+                <p className="text-2xl font-black text-gray-900 tracking-tight">Select a document</p>
+                <p className="text-gray-400 mt-2">or create a new one to get started</p>
               </div>
               <button
                 onClick={handleAddNote}

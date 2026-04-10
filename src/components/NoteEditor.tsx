@@ -3,8 +3,9 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { Trash2, Eye, Edit3, Link as LinkIcon } from "lucide-react";
-import type { Note } from "../models/note";
+import { Trash2, Eye, Edit3, Link as LinkIcon, MapPin } from "lucide-react";
+import type { Note, Location } from "../models/note";
+import PlaceSelector from "./PlaceSelector";
 
 interface NoteEditorProps {
   note: Note;
@@ -31,6 +32,10 @@ export default function NoteEditor({ note, onUpdate, onDelete, onNoteNavigate }:
       contentRef.current.style.height = contentRef.current.scrollHeight + "px";
     }
   }, [note.content, mode]);
+
+  const handleLocationChange = (location: Location) => {
+    onUpdate(note.id, { location });
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-12 animate-in fade-in duration-500">
@@ -59,6 +64,12 @@ export default function NoteEditor({ note, onUpdate, onDelete, onNoteNavigate }:
               <span>Preview</span>
             </button>
           </div>
+          {note.type === "place" && (
+            <div className="flex items-center space-x-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold uppercase tracking-wider">
+              <MapPin size={14} />
+              <span>Place</span>
+            </div>
+          )}
         </div>
         <button
           onClick={() => onDelete(note.id)}
@@ -79,6 +90,10 @@ export default function NoteEditor({ note, onUpdate, onDelete, onNoteNavigate }:
         disabled={mode === "preview"}
       />
 
+      {note.type === "place" && (
+        <PlaceSelector location={note.location} onChange={handleLocationChange} />
+      )}
+
       {mode === "edit" ? (
         <textarea
           ref={contentRef}
@@ -92,7 +107,7 @@ export default function NoteEditor({ note, onUpdate, onDelete, onNoteNavigate }:
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
-              code({ node, inline, className, children, ...props }: any) {
+              code({ inline, className, children, ...props }: { inline?: boolean; className?: string; children?: React.ReactNode }) {
                 const match = /language-(\w+)/.exec(className || "");
                 return !inline && match ? (
                   <div className="rounded-2xl overflow-hidden my-6 shadow-sm border border-gray-100">
@@ -100,7 +115,6 @@ export default function NoteEditor({ note, onUpdate, onDelete, onNoteNavigate }:
                       style={vscDarkPlus}
                       language={match[1]}
                       PreTag="div"
-                      {...props}
                     >
                       {String(children).replace(/\n$/, "")}
                     </SyntaxHighlighter>
@@ -111,7 +125,7 @@ export default function NoteEditor({ note, onUpdate, onDelete, onNoteNavigate }:
                   </code>
                 );
               },
-              a({ href, children }) {
+              a({ href, children }: { href?: string; children?: React.ReactNode }) {
                 const isInternal = !href?.startsWith("http");
                 return (
                   <a
@@ -119,8 +133,6 @@ export default function NoteEditor({ note, onUpdate, onDelete, onNoteNavigate }:
                     onClick={(e) => {
                       if (isInternal && onNoteNavigate) {
                         e.preventDefault();
-                        // For WikiLinks, we navigate by the actual title stored in the href if available, 
-                        // but here we just use children as we transformed [[Title]] to [Title](#)
                         onNoteNavigate(String(children));
                       }
                     }}

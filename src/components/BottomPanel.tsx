@@ -1,23 +1,23 @@
 import { useState, useMemo } from "react";
-import { ChevronUp, ChevronDown, Link as LinkIcon, Hash, ExternalLink } from "lucide-react";
-import type { Note } from "../models/note";
+import { ChevronUp, ChevronDown, Link as LinkIcon, Hash, ExternalLink, StickyNote, MapPin } from "lucide-react";
+import type { Note, NoteType } from "../models/note";
 
 interface BottomPanelProps {
   currentNote: Note;
   allNotes: Note[];
   onNoteNavigate: (title: string) => void;
+  onUpdateType: (id: string, type: NoteType) => void;
 }
 
-export default function BottomPanel({ currentNote, allNotes, onNoteNavigate }: BottomPanelProps) {
+export default function BottomPanel({ currentNote, allNotes, onNoteNavigate, onUpdateType }: BottomPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"links" | "backlinks">("links");
+  const [activeTab, setActiveTab] = useState<"links" | "backlinks" | "settings">("links");
 
   // Robust link extraction logic
   const extractLinks = (content: string) => {
     if (!content) return [];
     const foundLinks = new Set<{ title: string; isExternal: boolean; url: string }>();
     
-    // 1. Match [Text](Link)
     const mdRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
     let match;
     while ((match = mdRegex.exec(content)) !== null) {
@@ -27,7 +27,6 @@ export default function BottomPanel({ currentNote, allNotes, onNoteNavigate }: B
       foundLinks.add({ title, isExternal, url });
     }
 
-    // 2. Match [[Title]] or [[Title|Display Text]]
     const wikiRegex = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
     while ((match = wikiRegex.exec(content)) !== null) {
       foundLinks.add({ title: match[1].trim(), isExternal: false, url: "#" });
@@ -83,6 +82,14 @@ export default function BottomPanel({ currentNote, allNotes, onNoteNavigate }: B
               >
                 Backlinks ({backlinks.length})
               </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setActiveTab("settings"); }}
+                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+                  activeTab === "settings" ? "bg-white text-blue-600 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                }`}
+              >
+                Settings
+              </button>
             </div>
           )}
         </div>
@@ -92,6 +99,10 @@ export default function BottomPanel({ currentNote, allNotes, onNoteNavigate }: B
             <span>{links.length} Links</span>
             <span>•</span>
             <span>{backlinks.length} Backlinks</span>
+            <span>•</span>
+            <span className="flex items-center space-x-1">
+              <span className="capitalize">{currentNote.type}</span>
+            </span>
           </div>
         )}
       </div>
@@ -115,18 +126,16 @@ export default function BottomPanel({ currentNote, allNotes, onNoteNavigate }: B
                   <ExternalLink size={12} className={`text-gray-300 group-hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-all ${link.isExternal ? "opacity-100! text-emerald-300!" : ""}`} />
                 </button>
               )) : (
-                <div className="col-span-full py-8 text-center text-gray-400 italic text-sm">
-                  No internal links found in this document.
-                </div>
+                <div className="col-span-full py-8 text-center text-gray-400 italic text-sm">No internal links.</div>
               )}
             </div>
-          ) : (
+          ) : activeTab === "backlinks" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {backlinks.length > 0 ? backlinks.map((note) => (
                 <button
                   key={note.id}
                   onClick={() => onNoteNavigate(note.title)}
-                  className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 hover:border-blue-200 hover:shadow-sm transition-all group"
+                  className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 hover:border-blue-200 hover:shadow-sm transition-all group text-left"
                 >
                   <div className="flex items-center space-x-3 truncate">
                     <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
@@ -137,10 +146,32 @@ export default function BottomPanel({ currentNote, allNotes, onNoteNavigate }: B
                   <ExternalLink size={12} className="text-gray-300 group-hover:text-indigo-400 opacity-0 group-hover:opacity-100 transition-all" />
                 </button>
               )) : (
-                <div className="col-span-full py-8 text-center text-gray-400 italic text-sm">
-                  No other documents link to this one.
-                </div>
+                <div className="col-span-full py-8 text-center text-gray-400 italic text-sm">No backlinks.</div>
               )}
+            </div>
+          ) : (
+            <div className="max-w-md space-y-4">
+              <h3 className="text-sm font-bold text-gray-800 uppercase tracking-widest px-1">Document Type</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => onUpdateType(currentNote.id, "note")}
+                  className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all ${
+                    currentNote.type === "note" ? "bg-blue-50 border-blue-200 ring-2 ring-blue-100 shadow-sm" : "bg-white border-gray-100 hover:border-gray-200"
+                  }`}
+                >
+                  <StickyNote size={24} className={currentNote.type === "note" ? "text-blue-600" : "text-gray-400"} />
+                  <span className={`text-xs font-bold mt-2 ${currentNote.type === "note" ? "text-blue-700" : "text-gray-500"}`}>Regular Document</span>
+                </button>
+                <button
+                  onClick={() => onUpdateType(currentNote.id, "place")}
+                  className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all ${
+                    currentNote.type === "place" ? "bg-emerald-50 border-emerald-200 ring-2 ring-emerald-100 shadow-sm" : "bg-white border-gray-100 hover:border-gray-200"
+                  }`}
+                >
+                  <MapPin size={24} className={currentNote.type === "place" ? "text-emerald-600" : "text-gray-400"} />
+                  <span className={`text-xs font-bold mt-2 ${currentNote.type === "place" ? "text-emerald-700" : "text-gray-500"}`}>Geographic Place</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
