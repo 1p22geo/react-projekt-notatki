@@ -3,9 +3,9 @@ export default function Header() {
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-10">
       <div className="flex items-center space-x-2">
         <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-          <span className="text-white font-bold text-lg">B</span>
+          <span className="text-white font-bold text-lg">N</span>
         </div>
-        <h1 className="text-xl font-bold text-gray-800">Bodzio Meble Notes</h1>
+        <h1 className="text-xl font-bold text-gray-800">Nothing Notes</h1>
       </div>
       <div className="flex items-center space-x-4">
         <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">

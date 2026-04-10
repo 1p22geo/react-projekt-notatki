@@ -1,46 +1,140 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
-import NoteCard from "./components/NoteCard/NoteCard";
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
+import NoteEditor from "./components/NoteEditor";
+import BottomPanel from "./components/BottomPanel";
 import type { Note } from "./models/note";
 
-const MOCK_NOTES: Note[] = [
+const INITIAL_NOTES: Note[] = [
   {
     id: "1",
-    title: "Project Ideas",
-    content: "Building a note-taking app for Bodzio Meble. Need to focus on UX and clean design.",
-    createdAt: "2024-03-20",
+    title: "Project Obsidian",
+    content:
+      '# Welcome to Nothing Notes\n\nThis is a **Markdown-first** editor. You can use:\n\n- **Bold** and *Italic*\n- Lists and [Links](https://google.com)\n- Internal links to [Tutorial](#)\n- Code blocks with syntax highlighting:\n\n```javascript\nfunction greet() {\n  console.log("Hello from javascript!");\n}\n```\n\nTry clicking this link to another note: [Tutorial](#)',
+    createdAt: new Date().toISOString().split("T")[0],
   },
   {
     id: "2",
-    title: "Grocery List",
-    content: "Milk, eggs, bread, and some fresh vegetables from the market.",
-    createdAt: "2024-03-19",
-  },
-  {
-    id: "3",
-    title: "Meeting Notes",
-    content: "Discuss the new furniture line with the design team. Focus on ergonomic chairs.",
-    createdAt: "2024-03-18",
+    title: "Tutorial",
+    content:
+      "# Tutorial\n\nTo link to another note, just use `[Note Title](#)`.\n\nExample: Go back to [Project Obsidian](#).",
+    createdAt: new Date().toISOString().split("T")[0],
   },
 ];
 
 function App() {
-  const [selectedNote, setSelectedNote] = useState<Note>(MOCK_NOTES[0]);
+  const [notes, setNotes] = useState<Note[]>(() => {
+    const saved = localStorage.getItem("bodzio-notes");
+    return saved ? JSON.parse(saved) : INITIAL_NOTES;
+  });
+
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(
+    notes[0]?.id || null,
+  );
+
+  useEffect(() => {
+    localStorage.setItem("bodzio-notes", JSON.stringify(notes));
+  }, [notes]);
+
+  const selectedNote = notes.find((n) => n.id === selectedNoteId) || null;
+
+  const handleAddNote = () => {
+    const newNote: Note = {
+      id: crypto.randomUUID(),
+      title: "",
+      content: "",
+      createdAt: new Date().toISOString().split("T")[0],
+    };
+    setNotes([newNote, ...notes]);
+    setSelectedNoteId(newNote.id);
+  };
+
+  const handleDeleteNote = (id: string) => {
+    if (confirm("Are you sure you want to delete this document?")) {
+      const newNotes = notes.filter((n) => n.id !== id);
+      setNotes(newNotes);
+      if (selectedNoteId === id) {
+        setSelectedNoteId(newNotes[0]?.id || null);
+      }
+    }
+  };
+
+  const handleUpdateNote = (id: string, updates: Partial<Note>) => {
+    setNotes(notes.map((n) => (n.id === id ? { ...n, ...updates } : n)));
+  };
+
+  const handleNoteNavigate = (title: string) => {
+    const targetNote = notes.find(
+      (n) => n.title.toLowerCase() === title.toLowerCase(),
+    );
+    if (targetNote) {
+      setSelectedNoteId(targetNote.id);
+    } else {
+      console.log(`Note with title "${title}" not found.`);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col font-sans selection:bg-blue-100 selection:text-blue-900">
       <Header />
-      <div className="flex flex-1">
-        <Sidebar notes={MOCK_NOTES} onNoteSelect={setSelectedNote} selectedNoteId={selectedNote.id} />
-        <main className="flex-1 p-12 overflow-y-auto">
-          <div className="max-w-4xl mx-auto">
-            <h3 className="text-2xl font-bold text-gray-800 mb-8 px-4 border-l-4 border-blue-600 ml-2">Note Details</h3>
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <NoteCard note={selectedNote} />
+      <div className="flex flex-1 overflow-hidden relative">
+        <Sidebar
+          notes={notes}
+          onNoteSelect={(note) => setSelectedNoteId(note.id)}
+          selectedNoteId={selectedNoteId || undefined}
+          onAddNote={handleAddNote}
+          onDeleteNote={handleDeleteNote}
+        />
+        <main className="flex-1 overflow-y-auto pb-12">
+          {selectedNote ? (
+            <>
+              <NoteEditor
+                note={selectedNote}
+                onUpdate={handleUpdateNote}
+                onDelete={handleDeleteNote}
+                onNoteNavigate={handleNoteNavigate}
+              />
+              <BottomPanel
+                currentNote={selectedNote}
+                allNotes={notes}
+                onNoteNavigate={handleNoteNavigate}
+              />
+            </>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center text-gray-300 space-y-6">
+              <div className="p-10 rounded-[2.5rem] bg-gray-50 mb-4 animate-in zoom-in duration-700">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-20 w-20"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-black text-gray-900 tracking-tight">
+                  Select a document
+                </p>
+                <p className="text-gray-400 mt-2">
+                  or create a new one to get started
+                </p>
+              </div>
+              <button
+                onClick={handleAddNote}
+                className="mt-6 px-10 py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-95"
+              >
+                Create New Document
+              </button>
             </div>
-          </div>
+          )}
         </main>
       </div>
     </div>
