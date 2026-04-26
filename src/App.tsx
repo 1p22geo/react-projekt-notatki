@@ -27,7 +27,7 @@ const INITIAL_NOTES: Note[] = [
 
 function App() {
   const [notes, setNotes] = useState<Note[]>(() => {
-    const saved = localStorage.getItem("bodzio-notes");
+    const saved = localStorage.getItem("nothing-notes");
     return saved ? JSON.parse(saved) : INITIAL_NOTES;
   });
 
@@ -35,7 +35,7 @@ function App() {
   const [activeView, setActiveView] = useState<SidebarView>("list");
 
   useEffect(() => {
-    localStorage.setItem("bodzio-notes", JSON.stringify(notes));
+    localStorage.setItem("nothing-notes", JSON.stringify(notes));
   }, [notes]);
 
   const selectedNote = notes.find((n) => n.id === selectedNoteId) || null;
