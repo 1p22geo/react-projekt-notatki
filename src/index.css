@@ -1,5 +1,24 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 @import "leaflet/dist/leaflet.css";
+
+@layer base {
+  .prose h1 {
+    @apply text-5xl font-black mb-8 mt-12 text-gray-900 tracking-tight;
+  }
+  .prose h2 {
+    @apply text-4xl font-extrabold mb-6 mt-10 text-gray-900 tracking-tight;
+  }
+  .prose h3 {
+    @apply text-3xl font-bold mb-4 mt-8 text-gray-800 tracking-tight;
+  }
+  .prose h4 {
+    @apply text-2xl font-bold mb-4 mt-6 text-gray-800;
+  }
+  .prose p {
+    @apply mb-6 leading-relaxed;
+  }
+}
 
 /* Leaflet map styles */
 .leaflet-container {
