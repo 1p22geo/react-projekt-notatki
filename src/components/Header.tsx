@@ -5,7 +5,7 @@ export default function Header() {
         <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
           <span className="text-white font-bold text-lg">N</span>
         </div>
-        <h1 className="text-xl font-bold text-gray-800">Nothing Notes</h1>
+        <h1 className="text-xl font-bold text-gray-800">Nova Notes</h1>
       </div>
       <div className="flex items-center space-x-4">
         <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
